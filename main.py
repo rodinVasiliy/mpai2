@@ -26,13 +26,33 @@ def print_hi(name):
 
 
 def laplacian_approximation(img, mask):
-
     laplacian = signal.convolve2d(img, mask, mode='same', boundary='symm')
     laplacian_estimation = np.abs(laplacian)
     return laplacian_estimation
 
-# Press the green button in the gutter to run the script.
+
+def pruitt_operator(img):
+    mask1 = 1 / 6 * np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]])
+    mask2 = 1 / 6 * np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])
+
+    s1 = signal.convolve2d(img, mask1, mode='same', boundary='symm')
+    s2 = signal.convolve2d(img, mask2, mode='same', boundary='symm')
+
+    e = np.sqrt(s1 ** 2 + s2 ** 2)
+    return s1, s2, e
+
+
+def agreement_laplacian(img):
+
+    mask = 1 / 3 * np.array([[2, -1, 2], [-1, -4, -1], [2, -1, 2]])
+
+    s = signal.convolve2d(img, mask, mode='same', boundary='symm')
+    e = np.abs(s)
+    return e
+
+
 if __name__ == '__main__':
+    # TODO сделать считывание из json
     path = 'images//07_elaine.tif'
     image = imread(path)
     u, v, gradient = simple_gradient(image)
@@ -46,11 +66,11 @@ if __name__ == '__main__':
 
     fig.add_subplot(2, 3, 2)
     plt.title('Частная производная по первому направлению')
-    imshow(u+128, cmap='gray')
+    imshow(u + 128, cmap='gray')
 
     fig.add_subplot(2, 3, 3)
     plt.title('Частная производная по второму направлению')
-    imshow(v+128, cmap='gray')
+    imshow(v + 128, cmap='gray')
 
     fig.add_subplot(2, 3, 4)
     plt.title('Оценка модуля градиента')
@@ -67,6 +87,7 @@ if __name__ == '__main__':
 
     plt.show()
 
+    ################################################################
     mask1 = np.array([[0, 1, 0], [1, -4, 1], [0, 1, 0]])
     mask2 = 1 / 2 * np.array([[1, 0, 1], [0, -4, 0], [1, 0, 1]])
     mask3 = 1 / 3 * np.array([[1, 1, 1], [1, -8, 1], [1, 1, 1]])
@@ -74,7 +95,6 @@ if __name__ == '__main__':
     laplasian1 = laplacian_approximation(image, mask1)
     laplasian2 = laplacian_approximation(image, mask2)
     laplasian3 = laplacian_approximation(image, mask3)
-
 
     fig = plt.figure(figsize=(16, 10))
 
@@ -126,6 +146,60 @@ if __name__ == '__main__':
 
     plt.show()
 
+    ################################################################
+    s1, s2, e = pruitt_operator(image)
 
+    hist, bins = histogram(e)
+    pruitt_operator_image = thresholding(e, 20)
 
+    fig = plt.figure(figsize=(16, 10))
 
+    fig.add_subplot(2, 3, 1)
+    plt.title('Исходное изображение')
+    imshow(image, cmap='gray')
+
+    fig.add_subplot(2, 3, 2)
+    plt.title('Частная производная по первому направлению')
+    imshow(s1 + 128, cmap='gray')
+
+    fig.add_subplot(2, 3, 3)
+    plt.title('Частная производная по второму направлению')
+    imshow(s2 + 128, cmap='gray')
+
+    fig.add_subplot(2, 3, 4)
+    plt.title('Оценка модуля градиента')
+    imshow(e, cmap='gray')
+
+    fig.add_subplot(2, 3, 5)
+    plt.title('Гистограмма оценки модуля градиента')
+    plt.plot(bins, hist)
+
+    fig.add_subplot(2, 3, 6)
+    plt.title('Контуры метода Прюитт')
+    imshow(pruitt_operator_image, cmap='gray')
+
+    plt.show()
+
+    ################################################################
+    agreement_laplacian_result = agreement_laplacian(image)
+    agreement_laplacian_image = thresholding(agreement_laplacian_result, 35)
+
+    fig = plt.figure(figsize=(16, 10))
+
+    fig.add_subplot(2, 2, 1)
+    plt.title('Исходное изображение')
+    imshow(image, cmap='gray')
+
+    fig.add_subplot(2, 2, 2)
+    plt.title('Оценка модуля лапласиана')
+    imshow(e, cmap='gray')
+
+    fig.add_subplot(2, 2, 3)
+    plt.title('Гистограмма оценки модуля лапласиана')
+    plt.plot(bins, hist)
+
+    fig.add_subplot(2, 2, 4)
+    plt.title('Контуры метода аппроксимации лапласиана')
+    imshow(agreement_laplacian_image, cmap='gray')
+
+    plt.show()
